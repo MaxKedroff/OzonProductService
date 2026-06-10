@@ -9,9 +9,7 @@
 
   <ItemGroup>
     <Folder Include="Services\" />
-    <Folder Include="DTOs\" />
     <Folder Include="Validators\" />
-    <Folder Include="Ports\" />
     <Folder Include="Events\" />
   </ItemGroup>
 
