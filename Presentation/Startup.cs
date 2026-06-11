@@ -1,0 +1,122 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using FluentMigrator.Runner;
+using Application.Ports.Input;
+using Application.Ports.Output;
+using Application.Services;
+using Infrastructure.Cache;
+using Infrastructure.Messaging;
+using Infrastructure;
+using Infrastructure.Repositories;
+using StackExchange.Redis;
+using Domain.Interfaces;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using Application.Mappings;
+using System.Reflection;
+
+namespace Presentation
+{
+    public class Startup
+    {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen();
+
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.SuppressModelStateInvalidFilter = false;
+            });
+
+            services.AddAutoMapper(
+                cfg => { },
+                Assembly.GetAssembly(typeof(MappingProfile)),
+                Assembly.GetExecutingAssembly()
+            );
+
+            var connectionString = Configuration.GetConnectionString("PostgreSQL");
+            services.AddSingleton<IDbConnectionFactory>(sp => new NpgsqlConnectionFactory(connectionString!));
+
+            services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<IStockRepository, StockRepository>();
+
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IStockService, StockService>();
+
+            services.AddMemoryCache();
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+                ConnectionMultiplexer.Connect(Configuration.GetValue<string>("Redis:ConnectionString")!));
+            services.AddSingleton<IProductCache, RedisProductCache>();
+
+            services.Configure<KafkaSettings>(Configuration.GetSection("Kafka"));
+            services.AddSingleton<IMessageBus, KafkaMessageBus>();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+            });
+            services.AddResponseCaching();
+            services.AddHttpContextAccessor();
+            services.AddProblemDetails();
+        }
+
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseCors("AllowFrontend");
+            app.UseResponseCaching();
+            app.UseRouting();
+            app.UseAuthorization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+
+            RunMigrations(app, logger);
+        }
+
+        private static void RunMigrations(IApplicationBuilder app, ILogger logger)
+        {
+            using var scope = app.ApplicationServices.CreateScope();
+            var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+
+            try
+            {
+                runner.MigrateUp();
+                logger.LogInformation("Database migrations completed successfully");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to run database migrations");
+                if (app.ApplicationServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+                    throw;
+            }
+        }
+    }
+}
