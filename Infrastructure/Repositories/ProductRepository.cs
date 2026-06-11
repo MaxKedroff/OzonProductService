@@ -1,4 +1,6 @@
 ﻿using Dapper;
+using Domain.Common;
+using Domain.Enums;
 using Domain.Interfaces;
 using Domain.Models;
 using Domain.ValueObjects;
@@ -66,8 +68,22 @@ namespace Infrastructure.Repositories
                 FROM products 
                 WHERE id = @Id AND is_deleted = false";
 
-            var result = await connection.QuerySingleOrDefaultAsync<Product>(sql, new { Id = id });
-            return result;
+            var result = await connection.QuerySingleOrDefaultAsync<dynamic>(sql, new { Id = id });
+
+            if (result == null)
+                return null;
+            var product = new Product(
+                name: result.name,
+                description: result.description,
+                price: new Money((decimal)result.price, (string)result.currency),
+                sku: new Sku((string)result.sku),
+                category: Enum.Parse<ProductCategory>((string)result.category)
+            );
+
+            typeof(BaseEntity).GetProperty("Id")?.SetValue(product, (Guid)result.id);
+            typeof(BaseEntity).GetProperty("CreatedAt")?.SetValue(product, (DateTime)result.created_at);
+
+            return product;
         }
 
         public async Task<IEnumerable<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
