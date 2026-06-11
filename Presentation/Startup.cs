@@ -13,6 +13,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Application.Mappings;
 using System.Reflection;
+using Presentation.Middlewares;
 
 namespace Presentation
 {
@@ -82,6 +83,7 @@ namespace Presentation
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
+            app.UseMiddleware<ErrorHandlingMiddleware>();
             if (env.IsDevelopment())
             {
                 app.UseSwagger();
