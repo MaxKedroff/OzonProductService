@@ -1,4 +1,6 @@
-﻿namespace Domain.ValueObjects
+﻿using Domain.Exceptions;
+
+namespace Domain.ValueObjects
 {
     public class Sku : IEquatable<Sku>
     {

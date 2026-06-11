@@ -12,7 +12,6 @@ using Domain.Interfaces;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using Application.Mappings;
-using System.Reflection;
 using Presentation.Middlewares;
 
 namespace Presentation
@@ -43,14 +42,24 @@ namespace Presentation
                 options.SuppressModelStateInvalidFilter = false;
             });
 
-            services.AddAutoMapper(
-                cfg => { },
-                Assembly.GetAssembly(typeof(MappingProfile)),
-                Assembly.GetExecutingAssembly()
-            );
+
+            var mappingAssemblies = new[]
+            {
+                typeof(MappingProfile).Assembly
+            };
+
+            services.AddAutoMapper(mappingAssemblies);
+
 
             var connectionString = Configuration.GetConnectionString("PostgreSQL");
             services.AddSingleton<IDbConnectionFactory>(sp => new NpgsqlConnectionFactory(connectionString!));
+
+            services.AddFluentMigratorCore()
+                .ConfigureRunner(rb => rb
+                    .AddPostgres()
+                    .WithGlobalConnectionString(connectionString)
+                    .ScanIn(typeof(Infrastructure.Migrations.InitialMigration).Assembly).For.Migrations())
+                .AddLogging(lb => lb.AddFluentMigratorConsole());
 
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IStockRepository, StockRepository>();
@@ -65,7 +74,6 @@ namespace Presentation
 
             services.Configure<KafkaSettings>(Configuration.GetSection("Kafka"));
             services.AddSingleton<IMessageBus, KafkaMessageBus>();
-
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontend", policy =>
