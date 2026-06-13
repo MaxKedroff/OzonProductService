@@ -65,7 +65,7 @@ namespace Application.Services
 
             return new StockInfoDto
             {
-                ProductId = stock.ProductId,
+                ProductId = productId,
                 Quantity = stock.Quantity,
                 Reserved = stock.Reserved,
                 Available = stock.AvailableQuantity,

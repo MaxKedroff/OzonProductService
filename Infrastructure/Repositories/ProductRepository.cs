@@ -1,4 +1,6 @@
 ﻿using Dapper;
+using Domain.Common;
+using Domain.Enums;
 using Domain.Interfaces;
 using Domain.Models;
 using Domain.ValueObjects;
@@ -66,8 +68,22 @@ namespace Infrastructure.Repositories
                 FROM products 
                 WHERE id = @Id AND is_deleted = false";
 
-            var result = await connection.QuerySingleOrDefaultAsync<Product>(sql, new { Id = id });
-            return result;
+            var result = await connection.QuerySingleOrDefaultAsync<dynamic>(sql, new { Id = id });
+
+            if (result == null)
+                return null;
+            var product = new Product(
+                name: result.name,
+                description: result.description,
+                price: new Money((decimal)result.price, (string)result.currency),
+                sku: new Sku((string)result.sku),
+                category: Enum.Parse<ProductCategory>((string)result.category)
+            );
+
+            typeof(BaseEntity).GetProperty("Id")?.SetValue(product, (Guid)result.id);
+            typeof(BaseEntity).GetProperty("CreatedAt")?.SetValue(product, (DateTime)result.created_at);
+
+            return product;
         }
 
         public async Task<IEnumerable<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
@@ -102,11 +118,11 @@ namespace Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
 
             var sql = @"
-                SELECT 
-                    p.id, p.name, p.description, p.price, p.currency, p.sku, p.category, 
-                    p.is_deleted, p.created_at, p.updated_at
-                FROM products p
-                WHERE p.is_deleted = false";
+        SELECT 
+            p.id, p.name, p.description, p.price, p.currency, p.sku, p.category, 
+            p.is_deleted, p.created_at, p.updated_at
+        FROM products p
+        WHERE p.is_deleted = false";
 
             var conditions = new List<string>();
             var parameters = new DynamicParameters();
@@ -140,9 +156,9 @@ namespace Infrastructure.Repositories
             if (filter.InStockOnly.HasValue && filter.InStockOnly.Value)
             {
                 conditions.Add(@"EXISTS (
-                    SELECT 1 FROM product_stocks s 
-                    WHERE s.product_id = p.id AND (s.quantity - s.reserved) > 0
-                )");
+            SELECT 1 FROM product_stocks s 
+            WHERE s.product_id = p.id AND (s.quantity - s.reserved) > 0
+        )");
             }
 
             if (conditions.Any())
@@ -165,8 +181,32 @@ namespace Infrastructure.Repositories
             parameters.Add("PageSize", filter.PageSize);
             parameters.Add("Offset", filter.Offset);
 
-            var result = await connection.QueryAsync<Product>(sql, parameters);
-            return result;
+            var results = await connection.QueryAsync<dynamic>(sql, parameters);
+            var products = new List<Product>();
+
+            foreach (var row in results)
+            {
+                var product = new Product(
+                    name: (string)row.name,
+                    description: (string)row.description,
+                    price: new Money((decimal)row.price, (string)row.currency),
+                    sku: new Sku((string)row.sku),
+                    category: Enum.Parse<ProductCategory>((string)row.category)
+                );
+
+                var productType = product.GetType();
+                productType.GetProperty("Id")?.SetValue(product, (Guid)row.id);
+                productType.GetProperty("CreatedAt")?.SetValue(product, (DateTime)row.created_at);
+
+                if (row.updated_at != null)
+                    productType.GetProperty("UpdatedAt")?.SetValue(product, (DateTime)row.updated_at);
+
+                productType.GetProperty("IsDeleted")?.SetValue(product, (bool)row.is_deleted);
+
+                products.Add(product);
+            }
+
+            return products;
         }
 
         public async Task<int> GetTotalCountAsync(ProductFilter filter, CancellationToken cancellationToken = default)
