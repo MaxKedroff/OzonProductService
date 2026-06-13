@@ -118,11 +118,11 @@ namespace Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
 
             var sql = @"
-                SELECT 
-                    p.id, p.name, p.description, p.price, p.currency, p.sku, p.category, 
-                    p.is_deleted, p.created_at, p.updated_at
-                FROM products p
-                WHERE p.is_deleted = false";
+        SELECT 
+            p.id, p.name, p.description, p.price, p.currency, p.sku, p.category, 
+            p.is_deleted, p.created_at, p.updated_at
+        FROM products p
+        WHERE p.is_deleted = false";
 
             var conditions = new List<string>();
             var parameters = new DynamicParameters();
@@ -156,9 +156,9 @@ namespace Infrastructure.Repositories
             if (filter.InStockOnly.HasValue && filter.InStockOnly.Value)
             {
                 conditions.Add(@"EXISTS (
-                    SELECT 1 FROM product_stocks s 
-                    WHERE s.product_id = p.id AND (s.quantity - s.reserved) > 0
-                )");
+            SELECT 1 FROM product_stocks s 
+            WHERE s.product_id = p.id AND (s.quantity - s.reserved) > 0
+        )");
             }
 
             if (conditions.Any())
@@ -181,8 +181,32 @@ namespace Infrastructure.Repositories
             parameters.Add("PageSize", filter.PageSize);
             parameters.Add("Offset", filter.Offset);
 
-            var result = await connection.QueryAsync<Product>(sql, parameters);
-            return result;
+            var results = await connection.QueryAsync<dynamic>(sql, parameters);
+            var products = new List<Product>();
+
+            foreach (var row in results)
+            {
+                var product = new Product(
+                    name: (string)row.name,
+                    description: (string)row.description,
+                    price: new Money((decimal)row.price, (string)row.currency),
+                    sku: new Sku((string)row.sku),
+                    category: Enum.Parse<ProductCategory>((string)row.category)
+                );
+
+                var productType = product.GetType();
+                productType.GetProperty("Id")?.SetValue(product, (Guid)row.id);
+                productType.GetProperty("CreatedAt")?.SetValue(product, (DateTime)row.created_at);
+
+                if (row.updated_at != null)
+                    productType.GetProperty("UpdatedAt")?.SetValue(product, (DateTime)row.updated_at);
+
+                productType.GetProperty("IsDeleted")?.SetValue(product, (bool)row.is_deleted);
+
+                products.Add(product);
+            }
+
+            return products;
         }
 
         public async Task<int> GetTotalCountAsync(ProductFilter filter, CancellationToken cancellationToken = default)
