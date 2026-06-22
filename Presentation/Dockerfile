@@ -13,7 +13,7 @@ RUN dotnet restore "Presentation/Presentation.csproj"
 COPY . .
 RUN find . -name "Dockerfile" -type f -delete
 
-WORKDIR /src
+WORKDIR /src/Presentation
 RUN dotnet build "Presentation.csproj" -c Release --no-restore
 
 FROM build AS publish
@@ -27,4 +27,4 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Development
 
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "OzonProductService.dll"]
+ENTRYPOINT ["dotnet", "Presentation.dll"]
