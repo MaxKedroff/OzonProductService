@@ -18,6 +18,6 @@ public class Program
                 logging.ClearProviders();
                 logging.AddConsole();
                 logging.AddDebug();
-                logging.AddEventLog();
+                //logging.AddEventLog();
             });
 }
