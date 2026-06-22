@@ -13,6 +13,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Application.Mappings;
 using Presentation.Middlewares;
+using Presentation.Services;
 
 namespace Presentation
 {
@@ -41,6 +42,15 @@ namespace Presentation
             {
                 options.SuppressModelStateInvalidFilter = false;
             });
+
+            services.AddGrpc(options =>
+            {
+                options.EnableDetailedErrors = true;
+                options.MaxReceiveMessageSize = 2 * 1024 * 1024;
+                options.MaxSendMessageSize = 2 * 1024 * 1024;
+            });
+            services.AddGrpcReflection();
+
 
 
             var mappingAssemblies = new[]
@@ -123,6 +133,9 @@ namespace Presentation
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapGrpcService<ProductGrpcService>();
+                endpoints.MapGrpcService<StockGrpcService>();
+                endpoints.MapGrpcReflectionService();
             });
 
             RunMigrations(app, logger);
