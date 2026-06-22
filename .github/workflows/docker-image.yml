@@ -3,13 +3,7 @@ name: Docker Build and Deploy
 on:
   push:
     branches: [ master ]
-    paths:
-      - 'Presentation/**'
-      - 'Application/**'
-      - 'Domain/**'
-      - 'Infrastructure/**'
-      - 'docker-compose.yml'
-
+    
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
