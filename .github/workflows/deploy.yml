@@ -57,6 +57,6 @@ jobs:
           BUILD_CONFIGURATION=Release
           VERSION=${{ github.run_number }}
 
-    - name: Verify image pushed
+    - name: Verify image pushed test
       run: |
         echo "Image pushed successfully with tags: ${{ steps.meta.outputs.tags }}"
