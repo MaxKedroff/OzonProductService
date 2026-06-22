@@ -78,10 +78,27 @@ namespace Presentation
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials();
+                    policy.WithOrigins(
+                        "http://localhost:3000",
+                        "http://localhost:5173",
+                        "http://localhost:8080",          
+                        "http://localhost:80",
+                        "http://161.104.19.132:8080",        
+                        "http://161.104.19.132",              
+                        "http://161.104.19.132:5000",     
+                        "http://frontend:80",   
+                        "http://frontend:8080" 
+                    )
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials();
+                });
+
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
                 });
             });
             services.AddResponseCaching();
