@@ -13,7 +13,7 @@ RUN dotnet restore "Presentation/Presentation.csproj"
 COPY . .
 RUN find . -name "Dockerfile" -type f -delete
 
-WORKDIR /src/RealtyAnalizator
+WORKDIR /src
 RUN dotnet build "Presentation.csproj" -c Release --no-restore
 
 FROM build AS publish
