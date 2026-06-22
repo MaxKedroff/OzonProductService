@@ -38,7 +38,19 @@ namespace Application.Services
 
         public async Task<bool> CancelReservationAsync(Guid productId, int quantity, CancellationToken cancellationToken = default)
         {
-            return await _stockRepository.CancelReservationAsync(productId, quantity, cancellationToken);
+            if (quantity <= 0)
+                throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
+
+            var result = await _stockRepository.CancelReservationAsync(productId, quantity, cancellationToken);
+
+
+
+            return result;
+        }
+
+        public Task<bool> CancelReservationsByOrderAsync(Guid orderId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<bool> CommitReservationAsync(Guid productId, int quantity, CancellationToken cancellationToken = default)

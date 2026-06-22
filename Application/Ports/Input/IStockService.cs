@@ -8,6 +8,7 @@ namespace Application.Ports.Input
         Task<bool> TryReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken = default);
         Task<bool> CommitReservationAsync(Guid productId, int quantity, CancellationToken cancellationToken = default);
         Task<bool> CancelReservationAsync(Guid productId, int quantity, CancellationToken cancellationToken = default);
+        Task<bool> CancelReservationsByOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
         Task AddStockAsync(Guid productId, int quantity, CancellationToken cancellationToken = default);
         Task RemoveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken = default);
     }

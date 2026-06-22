@@ -14,6 +14,8 @@ using System.Text.Json;
 using Application.Mappings;
 using Presentation.Middlewares;
 using Presentation.Services;
+using Application.Events;
+using Infrastructure.Messaging.Handlers;
 
 namespace Presentation
 {
@@ -81,6 +83,7 @@ namespace Presentation
             services.AddSingleton<IConnectionMultiplexer>(sp =>
                 ConnectionMultiplexer.Connect(Configuration.GetValue<string>("Redis:ConnectionString")!));
             services.AddSingleton<IProductCache, RedisProductCache>();
+            services.AddScoped<OrderCancelledEventHandler>();
 
             services.Configure<KafkaSettings>(Configuration.GetSection("Kafka"));
             services.AddSingleton<IMessageBus, KafkaMessageBus>();
@@ -138,6 +141,8 @@ namespace Presentation
                 endpoints.MapGrpcReflectionService();
             });
 
+            SubscribeToKafkaTopics(app);
+
             RunMigrations(app, logger);
         }
 
@@ -156,6 +161,34 @@ namespace Presentation
                 logger.LogError(ex, "Failed to run database migrations");
                 if (app.ApplicationServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
                     throw;
+            }
+        }
+
+        private void SubscribeToKafkaTopics(IApplicationBuilder app)
+        {
+            using var scope = app.ApplicationServices.CreateScope();
+            var messageBus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+            try
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await messageBus.SubscribeAsync<OrderCancelledEvent, OrderCancelledEventHandler>();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Startup>>();
+                        logger.LogInformation("Subscribed to OrderCancelledEvent topic");
+                    }
+                    catch (Exception ex)
+                    {
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Startup>>();
+                        logger.LogError(ex, "Failed to subscribe to OrderCancelledEvent");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Startup>>();
+                logger.LogError(ex, "Failed to setup Kafka subscriptions");
             }
         }
     }
