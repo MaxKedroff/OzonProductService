@@ -67,10 +67,19 @@ namespace Infrastructure.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                SELECT id, product_id, quantity, reserved, warehouse, lead_time_days, created_at, updated_at
+                SELECT 
+                    id, 
+                    product_id as ProductId, 
+                    quantity, 
+                    reserved, 
+                    warehouse, 
+                    lead_time_days as LeadTimeDays, 
+                    created_at as CreatedAt, 
+                    updated_at as UpdatedAt
                 FROM product_stocks 
                 WHERE product_id = @ProductId";
-            var result = await connection.QuerySingleOrDefaultAsync<ProductStock>(sql, new { ProductId = productId });
+
+            var result = await connection.QueryFirstOrDefaultAsync<ProductStock>(sql, new { ProductId = productId });
             return result;
         }
 
@@ -78,7 +87,15 @@ namespace Infrastructure.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                SELECT id, product_id, quantity, reserved, warehouse, lead_time_days, created_at, updated_at
+                SELECT 
+                    id, 
+                    product_id as ProductId, 
+                    quantity, 
+                    reserved, 
+                    warehouse, 
+                    lead_time_days as LeadTimeDays, 
+                    created_at as CreatedAt, 
+                    updated_at as UpdatedAt
                 FROM product_stocks 
                 WHERE product_id = ANY(@ProductIds)";
 
