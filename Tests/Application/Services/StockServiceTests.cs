@@ -5,6 +5,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using FluentAssertions;
 using Moq;
+using Domain.Exceptions;
 
 namespace Tests.Application.Services
 {
@@ -259,7 +260,7 @@ namespace Tests.Application.Services
 
             Func<Task> act = async () => await _stockService.RemoveStockAsync(productId, quantity);
 
-            act.Should().ThrowAsync<Domain.Exceptions.DomainException>()
+            act.Should().ThrowAsync<DomainException>()
                 .WithMessage($"Insufficient available stock. Available: 10");
             _stockRepositoryMock.Verify(
                 x => x.UpdateAsync(It.IsAny<ProductStock>(), It.IsAny<CancellationToken>()),
