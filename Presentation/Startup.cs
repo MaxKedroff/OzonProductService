@@ -82,11 +82,13 @@ namespace Presentation
             services.AddMemoryCache();
             services.AddSingleton<IConnectionMultiplexer>(sp =>
                 ConnectionMultiplexer.Connect(Configuration.GetValue<string>("Redis:ConnectionString")!));
+
             services.AddSingleton<IProductCache, RedisProductCache>();
-            services.AddScoped<OrderCancelledEventHandler>();
 
             services.Configure<KafkaSettings>(Configuration.GetSection("Kafka"));
             services.AddSingleton<IMessageBus, KafkaMessageBus>();
+            services.AddScoped<OrderCancelledEventHandler>();
+
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontend", policy =>
@@ -94,13 +96,13 @@ namespace Presentation
                     policy.WithOrigins(
                         "http://localhost:3000",
                         "http://localhost:5173",
-                        "http://localhost:8080",          
+                        "http://localhost:8080",
                         "http://localhost:80",
-                        "http://161.104.19.132:8080",        
-                        "http://161.104.19.132",              
-                        "http://161.104.19.132:5000",     
-                        "http://frontend:80",   
-                        "http://frontend:8080" 
+                        "http://161.104.19.132:8080",
+                        "http://161.104.19.132",
+                        "http://161.104.19.132:5000",
+                        "http://frontend:80",
+                        "http://frontend:8080"
                     )
                     .AllowAnyMethod()
                     .AllowAnyHeader()
