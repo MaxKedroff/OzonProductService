@@ -82,8 +82,10 @@ namespace Infrastructure.Repositories
 
             typeof(BaseEntity).GetProperty("Id")?.SetValue(product, (Guid)result.id);
             typeof(BaseEntity).GetProperty("CreatedAt")?.SetValue(product, (DateTime)result.created_at);
-            typeof(BaseEntity).GetProperty("UpdatedAt")?.SetValue(product, (DateTime)result.updated_at);
-
+            if (result.updated_at != null && result.updated_at != DBNull.Value)
+            {
+                typeof(BaseEntity).GetProperty("UpdatedAt")?.SetValue(product, (DateTime)result.updated_at);
+            }
 
 
             return product;
