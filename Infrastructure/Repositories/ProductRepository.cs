@@ -82,6 +82,9 @@ namespace Infrastructure.Repositories
 
             typeof(BaseEntity).GetProperty("Id")?.SetValue(product, (Guid)result.id);
             typeof(BaseEntity).GetProperty("CreatedAt")?.SetValue(product, (DateTime)result.created_at);
+            typeof(BaseEntity).GetProperty("UpdatedAt")?.SetValue(product, (DateTime)result.updated_at);
+
+
 
             return product;
         }
@@ -90,27 +93,74 @@ namespace Infrastructure.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                SELECT 
-                    id, name, description, price, currency, sku, category, 
-                    is_deleted, created_at, updated_at
-                FROM products 
-                WHERE id = ANY(@Ids) AND is_deleted = false";
+        SELECT 
+            id, name, description, price, currency, sku, category, 
+            is_deleted, created_at, updated_at
+        FROM products 
+        WHERE id = ANY(@Ids) AND is_deleted = false";
 
-            var result = await connection.QueryAsync<Product>(sql, new { Ids = ids.ToList() });
-            return result;
+            // Используем dynamic для ручного маппинга
+            var results = await connection.QueryAsync<dynamic>(sql, new { Ids = ids.ToList() });
+            var products = new List<Product>();
+
+            foreach (var row in results)
+            {
+                var product = new Product(
+                    name: (string)row.name,
+                    description: (string)row.description,
+                    price: new Money((decimal)row.price, (string)row.currency),
+                    sku: new Sku((string)row.sku),
+                    category: Enum.Parse<ProductCategory>((string)row.category)
+                );
+
+                var productType = product.GetType();
+                productType.GetProperty("Id")?.SetValue(product, (Guid)row.id);
+                productType.GetProperty("CreatedAt")?.SetValue(product, (DateTime)row.created_at);
+
+                if (row.updated_at != null)
+                    productType.GetProperty("UpdatedAt")?.SetValue(product, (DateTime)row.updated_at);
+
+                productType.GetProperty("IsDeleted")?.SetValue(product, (bool)row.is_deleted);
+
+                products.Add(product);
+            }
+
+            return products;
         }
 
         public async Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                SELECT 
-                    id, name, description, price, currency, sku, category, 
-                    is_deleted, created_at, updated_at
-                FROM products 
-                WHERE sku = @Sku AND is_deleted = false";
-            var result = await connection.QuerySingleOrDefaultAsync<Product>(sql, new { Sku = sku });
-            return result;
+        SELECT 
+            id, name, description, price, currency, sku, category, 
+            is_deleted, created_at, updated_at
+        FROM products 
+        WHERE sku = @Sku AND is_deleted = false";
+
+            var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { Sku = sku });
+
+            if (result == null)
+                return null;
+
+            var product = new Product(
+                name: (string)result.name,
+                description: (string)result.description,
+                price: new Money((decimal)result.price, (string)result.currency),
+                sku: new Sku((string)result.sku),
+                category: Enum.Parse<ProductCategory>((string)result.category)
+            );
+
+            var productType = product.GetType();
+            productType.GetProperty("Id")?.SetValue(product, (Guid)result.id);
+            productType.GetProperty("CreatedAt")?.SetValue(product, (DateTime)result.created_at);
+
+            if (result.updated_at != null)
+                productType.GetProperty("UpdatedAt")?.SetValue(product, (DateTime)result.updated_at);
+
+            productType.GetProperty("IsDeleted")?.SetValue(product, (bool)result.is_deleted);
+
+            return product;
         }
 
         public async Task<IEnumerable<Product>> GetFilteredAsync(ProductFilter filter, CancellationToken cancellationToken = default)

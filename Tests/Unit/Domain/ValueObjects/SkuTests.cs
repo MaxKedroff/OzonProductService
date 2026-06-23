@@ -2,7 +2,7 @@
 using Domain.ValueObjects;
 using FluentAssertions;
 
-namespace Tests.Domain.ValueObjects
+namespace Tests.Unit.Domain.ValueObjects
 {
     [TestFixture]
     public class SkuTests

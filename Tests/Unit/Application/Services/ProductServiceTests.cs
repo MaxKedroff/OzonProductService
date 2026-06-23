@@ -11,7 +11,7 @@ using Domain.ValueObjects;
 using FluentAssertions;
 using Moq;
 
-namespace Tests.Application.Services
+namespace Tests.Unit.Application.Services
 {
     [TestFixture]
     public class ProductServiceTests

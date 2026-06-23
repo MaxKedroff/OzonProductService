@@ -7,7 +7,7 @@ using FluentAssertions;
 using Moq;
 using Domain.Exceptions;
 
-namespace Tests.Application.Services
+namespace Tests.Unit.Application.Services
 {
     [TestFixture]
     public class StockServiceTests
