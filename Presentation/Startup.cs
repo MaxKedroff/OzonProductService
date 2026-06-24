@@ -88,6 +88,7 @@ namespace Presentation
             services.Configure<KafkaSettings>(Configuration.GetSection("Kafka"));
             services.AddSingleton<IMessageBus, KafkaMessageBus>();
             services.AddScoped<OrderCancelledEventHandler>();
+            services.AddScoped<OrderPaidEventHandler>();
 
             services.AddCors(options =>
             {
@@ -177,8 +178,9 @@ namespace Presentation
                     try
                     {
                         await messageBus.SubscribeAsync<OrderCancelledEvent, OrderCancelledEventHandler>();
+                        await messageBus.SubscribeAsync<OrderPaidEvent, OrderPaidEventHandler>();
                         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Startup>>();
-                        logger.LogInformation("Subscribed to OrderCancelledEvent topic");
+                        logger.LogInformation("Subscribed to OrderCancelledEvent and OrderPaidEvent topic");
                     }
                     catch (Exception ex)
                     {
